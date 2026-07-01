@@ -110,7 +110,7 @@ class HoldlineJudge(gl.Contract):
 
         # Step 2: news fetch, deterministic, strict_eq, truncated to 6000.
         def fetch_news_data() -> str:
-            news_content = gl.get_webpage(news_url_local, mode="text")
+            news_content = gl.nondet.web.render(news_url_local, mode="text")
             return news_content[:6000]
 
         news_content = gl.eq_principle.strict_eq(fetch_news_data)

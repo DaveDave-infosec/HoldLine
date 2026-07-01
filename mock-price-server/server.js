@@ -74,6 +74,42 @@ function scenarioAsset(asset, scenario) {
   return freshAsset(asset);
 }
 
+// Deterministic news context per scenario. Returns stable plain text so the
+// GenLayer strict_eq consensus on news content passes across validator calls.
+function scenarioNews(asset, scenario) {
+  if (scenario === "severe") {
+    return (
+      "BREAKING: " + asset + " under sustained pressure as reserve concerns mount. " +
+      "Multiple desks report large redemptions through the session after questions " +
+      "surfaced over the backing attestation for " + asset + ". On-chain data shows " +
+      "holders rotating out of the asset across major venues. Analysts describe the " +
+      "move as a credible, cause-driven depeg rather than transient market noise. " +
+      "Liquidity pools have skewed heavily as providers step back."
+    );
+  }
+  if (scenario === "mild") {
+    return (
+      "Market note: " + asset + " slipped modestly below peg during low-liquidity " +
+      "hours before partially recovering. No reserve or counterparty concerns have " +
+      "been reported. Desks characterize the move as routine intraday volatility " +
+      "with no identifiable structural cause."
+    );
+  }
+  if (scenario === "wick") {
+    return (
+      "Market note: a brief price dislocation in " + asset + " was observed on a " +
+      "single venue and did not propagate to other exchanges. No news, reserve, or " +
+      "counterparty events have been reported. Liquidity remained balanced and the " +
+      "quote normalized quickly, consistent with a localized wick rather than a " +
+      "fundamental event."
+    );
+  }
+  return (
+    asset + " is trading at peg with no notable news. Reserves, redemptions, and " +
+    "liquidity are all reported as normal across monitored venues."
+  );
+}
+
 let priceData = {
   USDC: freshAsset("USDC"),
   USDT: freshAsset("USDT"),
@@ -100,6 +136,13 @@ app.get("/price/:asset", (req, res) => {
   }
   priceData[asset].last_updated = new Date().toISOString();
   res.json(priceData[asset]);
+});
+
+// News context endpoint. Scenario-driven and deterministic, cold-start safe.
+app.get("/news/:asset", (req, res) => {
+  const asset = req.params.asset.toUpperCase();
+  const scenario = String(req.query.scenario || "stable").toLowerCase();
+  res.type("text/plain").send(scenarioNews(asset, scenario));
 });
 
 app.post("/admin/update/:asset", (req, res) => {
