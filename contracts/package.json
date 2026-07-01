@@ -1,0 +1,15 @@
+{
+  "name": "holdline-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "compile": "hardhat compile"
+  },
+  "devDependencies": {
+    "hardhat": "^2.22.10",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.2"
+  }
+}

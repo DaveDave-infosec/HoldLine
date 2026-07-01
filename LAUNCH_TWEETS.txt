@@ -1,0 +1,7 @@
+TWEET 1
+
+Fixed price triggers for depeg insurance are broken by design. The moment your payout fires on a hardcoded number like "below 0.97," anyone can wick the price on one thin venue for a single block, trip the trigger, and drain the pool while the peg was never actually in danger.
+
+TWEET 2
+
+Holdline puts a judge on it instead. Its GenLayer Intelligent Contract reads price across every venue at once, checks whether the liquidity pool is actually imbalanced, pulls the news for a real cause, then reasons over all three before it confirms anything. A lone wick with a balanced pool and no story gets denied. A real depeg with holders fleeing and a reason behind it pays out, scaled to severity. The kind of judgment a rigid trigger will never have. Built on @GenLayer.
