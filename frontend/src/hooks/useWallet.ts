@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { ensureStudioNetwork, getSigner } from "../lib/contracts";
+import { ensureStudioNetwork, connectWallet } from "../lib/contracts";
 import { initClient } from "../lib/genlayer";
 import { OWNER_ADDRESS } from "../lib/constants";
 
@@ -16,8 +16,7 @@ export function useWallet() {
     setError("");
     try {
       await ensureStudioNetwork();
-      const signer = await getSigner();
-      const addr = await signer.getAddress();
+      const addr = await connectWallet();
       initClient(addr);
       setAddress(addr);
     } catch (err: any) {

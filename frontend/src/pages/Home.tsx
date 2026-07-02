@@ -37,8 +37,8 @@ export default function Home() {
         let activePolicies = 0;
         const stats = await poolFor(a.symbol).readStats();
         if (stats) {
-          poolDeposits = Number(stats.totalPoolDeposits).toLocaleString();
-          activePolicies = stats.policyCounter;
+          poolDeposits = Number(stats.totalDeposits).toLocaleString();
+          activePolicies = stats.policyCount;
         }
         next.push({ symbol: a.symbol, price, poolDeposits, activePolicies });
       }

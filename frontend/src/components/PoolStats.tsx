@@ -20,10 +20,10 @@ export default function PoolStats({ stats, yourSharePct }: PoolStatsProps) {
   }
   return (
     <div style={{ background: "var(--elevated)", border: "1px solid var(--gridline)", padding: "8px 20px 16px" }}>
-      <Row label="Total Deposits" value={stats.totalPoolDeposits + " genUSDC"} />
-      <Row label="Active Coverage" value={stats.totalActiveCoverage + " genUSDC"} />
+      <Row label="Total Deposits" value={stats.totalDeposits.toLocaleString() + " genUSDC"} />
+      <Row label="Active Coverage" value={stats.totalActiveCoverage.toLocaleString() + " genUSDC"} />
       <Row label="Utilization" value={stats.utilizationPct.toFixed(1) + "%  of  " + (stats.maxUtilizationBps / 100).toFixed(0) + "% cap"} />
-      <Row label="Policies Written" value={String(stats.policyCounter)} />
+      <Row label="Policies Written" value={String(stats.policyCount)} />
       <Row label="Protocol Fee" value={(stats.protocolFeeBps / 100).toFixed(1) + "%"} />
       {yourSharePct != null && <Row label="Your Pool Share" value={yourSharePct.toFixed(2) + "%"} />}
     </div>

@@ -1,16 +1,29 @@
 import { useState, useCallback } from "react";
-import { getBrowserProvider, poolContract } from "../lib/contracts";
+import { poolGetPoliciesByHolder, poolGetAllPolicies } from "../lib/genlayer";
 
 export interface PolicyView {
-  policyId: number;
+  policyId: string;
+  asset: string;
   holder: string;
-  coverageAmount: bigint;
-  premiumPaid: bigint;
+  coverage: number;
+  premium: number;
   active: boolean;
   claimed: boolean;
 }
 
-export function usePolicy(asset: string) {
+function normalize(raw: any): PolicyView {
+  return {
+    policyId: String(raw.policy_id),
+    asset: String(raw.asset),
+    holder: String(raw.holder),
+    coverage: Number(raw.coverage) || 0,
+    premium: Number(raw.premium) || 0,
+    active: String(raw.active).toLowerCase() === "true",
+    claimed: String(raw.claimed).toLowerCase() === "true",
+  };
+}
+
+export function usePolicy() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
 
@@ -18,38 +31,29 @@ export function usePolicy(asset: string) {
     setLoading(true);
     setError("");
     try {
-      const provider = getBrowserProvider();
-      const pool = poolContract(asset, provider);
-      const counter = Number(await pool.policyCounter());
-      const out: PolicyView[] = [];
-      for (let i = 0; i < counter; i++) {
-        const p = await pool.policies(i);
-        out.push({
-          policyId: i,
-          holder: p[0] as string,
-          coverageAmount: p[1] as bigint,
-          premiumPaid: p[2] as bigint,
-          active: p[3] as boolean,
-          claimed: p[4] as boolean,
-        });
-      }
-      return out;
+      const raw = (await poolGetAllPolicies()) as any[];
+      return Array.isArray(raw) ? raw.map(normalize) : [];
     } catch (err: any) {
       setError(err?.message || "Failed to load policies");
       return [];
     } finally {
       setLoading(false);
     }
-  }, [asset]);
+  }, []);
 
-  const listMine = useCallback(
-    async (who: string): Promise<PolicyView[]> => {
-      const all = await listAll();
-      const lower = who.toLowerCase();
-      return all.filter((p) => p.holder.toLowerCase() === lower);
-    },
-    [listAll],
-  );
+  const listMine = useCallback(async (who: string): Promise<PolicyView[]> => {
+    setLoading(true);
+    setError("");
+    try {
+      const raw = (await poolGetPoliciesByHolder(who)) as any[];
+      return Array.isArray(raw) ? raw.map(normalize) : [];
+    } catch (err: any) {
+      setError(err?.message || "Failed to load policies");
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   return { loading, error, listAll, listMine };
 }

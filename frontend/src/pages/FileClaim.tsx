@@ -5,7 +5,7 @@ import { useWallet } from "../hooks/useWallet";
 import { usePolicy } from "../hooks/usePolicy";
 import type { PolicyView } from "../hooks/usePolicy";
 import { useJudgeVerdict } from "../hooks/useJudgeVerdict";
-import { ASSETS, priceUrl, NEWS_QUERY_URL } from "../lib/constants";
+import { ASSETS, priceUrl, newsUrl } from "../lib/constants";
 import type { Scenario } from "../lib/constants";
 
 interface ClaimablePolicy extends PolicyView {
@@ -24,8 +24,7 @@ export default function FileClaim() {
   const navigate = useNavigate();
   const { filing, error, fileClaim, fetchCount } = useJudgeVerdict();
 
-  const usdcPolicies = usePolicy("USDC");
-  const usdtPolicies = usePolicy("USDT");
+  const policies = usePolicy();
 
   const [claimable, setClaimable] = useState<ClaimablePolicy[]>([]);
   const [selected, setSelected] = useState<string>("");
@@ -37,10 +36,10 @@ export default function FileClaim() {
     let alive = true;
     (async () => {
       const rows: ClaimablePolicy[] = [];
-      const u = await usdcPolicies.listMine(address);
-      u.filter((p) => p.active && !p.claimed).forEach((p) => rows.push({ ...p, asset: "USDC" }));
-      const t = await usdtPolicies.listMine(address);
-      t.filter((p) => p.active && !p.claimed).forEach((p) => rows.push({ ...p, asset: "USDT" }));
+      const mine = await policies.listMine(address);
+      mine
+        .filter((p) => p.active && !p.claimed)
+        .forEach((p) => rows.push({ ...p, asset: p.asset }));
       if (alive) {
         setClaimable(rows);
         if (rows.length > 0) setSelected(rows[0].asset + ":" + rows[0].policyId);
@@ -68,7 +67,7 @@ export default function FileClaim() {
     const requestedAt = new Date().toISOString();
     const url = priceUrl(asset, scenario);
 
-    const returned = await fileClaim(asset, url, NEWS_QUERY_URL, cfg.threshold, address, requestedAt);
+    const returned = await fileClaim(asset, url, newsUrl(asset, scenario), cfg.threshold, address, requestedAt);
 
     let verdictId = returned && returned.startsWith("holdline_") ? returned : "";
     if (!verdictId) {

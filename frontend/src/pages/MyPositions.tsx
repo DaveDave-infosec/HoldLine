@@ -1,18 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ethers } from "ethers";
 import { useWallet } from "../hooks/useWallet";
 import { usePolicy } from "../hooks/usePolicy";
 import { usePool } from "../hooks/usePool";
 import type { PolicyView } from "../hooks/usePolicy";
-import { ASSET_LIST, GENUSDC_DECIMALS } from "../lib/constants";
+import { ASSET_LIST } from "../lib/constants";
 
 interface PolicyRow extends PolicyView {
   asset: string;
-}
-
-function fmt(v: bigint): string {
-  return Number(ethers.formatUnits(v, GENUSDC_DECIMALS)).toLocaleString();
 }
 
 export default function MyPositions() {
@@ -22,8 +17,8 @@ export default function MyPositions() {
   const [deposits, setDeposits] = useState<{ asset: string; deposit: string; earned: string }[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const usdcPolicies = usePolicy("USDC");
-  const usdtPolicies = usePolicy("USDT");
+  const usdcPolicies = usePolicy();
+  const usdtPolicies = usePolicy();
   const usdcPool = usePool("USDC");
   const usdtPool = usePool("USDT");
 
@@ -42,11 +37,11 @@ export default function MyPositions() {
       for (const a of ASSET_LIST) {
         const pool = a.symbol === "USDC" ? usdcPool : usdtPool;
         const pos = await pool.readPosition(address);
-        if (pos && (parseFloat(pos.depositAmount) > 0 || parseFloat(pos.earnedPremiums) > 0)) {
+        if (pos && (pos.deposit > 0 || pos.earned > 0)) {
           depRows.push({
             asset: a.symbol,
-            deposit: Number(pos.depositAmount).toLocaleString(),
-            earned: Number(pos.earnedPremiums).toLocaleString(),
+            deposit: pos.deposit.toLocaleString(),
+            earned: pos.earned.toLocaleString(),
           });
         }
       }
@@ -91,7 +86,7 @@ export default function MyPositions() {
                 <div>
                   <div style={{ fontFamily: "var(--font-mono)", fontSize: 14 }}>{p.asset + "  #" + p.policyId}</div>
                   <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
-                    {"Coverage " + fmt(p.coverageAmount) + "  /  Premium " + fmt(p.premiumPaid)}
+                    {"Coverage " + p.coverage.toLocaleString() + "  /  Premium " + p.premium.toLocaleString()}
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 20 }}>

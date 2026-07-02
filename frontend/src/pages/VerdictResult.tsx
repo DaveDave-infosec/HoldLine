@@ -11,7 +11,7 @@ export default function VerdictResult() {
   const { verdictId } = useParams<{ verdictId: string }>();
   const navigate = useNavigate();
   const { fetchVerdict } = useJudgeVerdict();
-  const { isOwner } = useWallet();
+  const { address, isOwner } = useWallet();
 
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,9 +67,13 @@ export default function VerdictResult() {
     setRelayNotice("");
     const asset = verdict.asset_symbol.toUpperCase();
     const pool = asset === "USDC" ? usdcPool : usdtPool;
+    if (!address) {
+      setRelayNotice("Connect the owner wallet to settle.");
+      return;
+    }
     const pid = window.prompt("Policy ID to settle for this verdict:");
-    if (pid === null) return;
-    const ok = await pool.settleClaim(Number(pid), confirmed, severity);
+    if (pid === null || pid.trim() === "") return;
+    const ok = await pool.settleClaim(pid.trim(), confirmed, severity, address);
     if (ok) setRelayNotice("Settlement relayed to the " + asset + " pool for policy #" + pid + ".");
   };
 

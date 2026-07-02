@@ -1,28 +1,28 @@
 import { useState, useCallback } from "react";
-import { ethers } from "ethers";
-import { getSigner, getBrowserProvider, genUSDCContract, poolContract } from "../lib/contracts";
-import { GENUSDC_DECIMALS } from "../lib/constants";
+import {
+  poolGetStats,
+  poolGetProviderPosition,
+  poolDeposit,
+  poolWithdraw,
+  poolPurchasePolicy,
+  poolSettleClaim,
+  poolBalanceOf,
+} from "../lib/genlayer";
 
 export interface PoolStats {
-  totalPoolDeposits: string;
-  totalActiveCoverage: string;
+  asset: string;
+  totalDeposits: number;
+  totalActiveCoverage: number;
   maxUtilizationBps: number;
-  policyCounter: number;
   protocolFeeBps: number;
+  premiumRateBps: number;
+  policyCount: number;
   utilizationPct: number;
 }
 
 export interface ProviderPosition {
-  depositAmount: string;
-  earnedPremiums: string;
-}
-
-function fmt(v: bigint): string {
-  return ethers.formatUnits(v, GENUSDC_DECIMALS);
-}
-
-function parse(v: string): bigint {
-  return ethers.parseUnits(v || "0", GENUSDC_DECIMALS);
+  deposit: number;
+  earned: number;
 }
 
 export function usePool(asset: string) {
@@ -31,19 +31,19 @@ export function usePool(asset: string) {
 
   const readStats = useCallback(async (): Promise<PoolStats | null> => {
     try {
-      const provider = getBrowserProvider();
-      const pool = poolContract(asset, provider);
-      const s = await pool.getPoolStats();
-      const deposits = s[0] as bigint;
-      const coverage = s[1] as bigint;
-      const utilizationPct =
-        deposits === 0n ? 0 : Number((coverage * 10000n) / deposits) / 100;
+      const raw = (await poolGetStats(asset)) as any;
+      if (!raw || !raw.asset) return null;
+      const deposits = Number(raw.total_deposits) || 0;
+      const coverage = Number(raw.total_active_coverage) || 0;
+      const utilizationPct = deposits === 0 ? 0 : (coverage / deposits) * 100;
       return {
-        totalPoolDeposits: fmt(deposits),
-        totalActiveCoverage: fmt(coverage),
-        maxUtilizationBps: Number(s[2]),
-        policyCounter: Number(s[3]),
-        protocolFeeBps: Number(s[4]),
+        asset: raw.asset,
+        totalDeposits: deposits,
+        totalActiveCoverage: coverage,
+        maxUtilizationBps: Number(raw.max_utilization_bps) || 0,
+        protocolFeeBps: Number(raw.protocol_fee_bps) || 0,
+        premiumRateBps: Number(raw.premium_rate_bps) || 0,
+        policyCount: Number(raw.policy_count) || 0,
         utilizationPct,
       };
     } catch (err: any) {
@@ -55,10 +55,11 @@ export function usePool(asset: string) {
   const readPosition = useCallback(
     async (who: string): Promise<ProviderPosition | null> => {
       try {
-        const provider = getBrowserProvider();
-        const pool = poolContract(asset, provider);
-        const pos = await pool.providers(who);
-        return { depositAmount: fmt(pos[0] as bigint), earnedPremiums: fmt(pos[1] as bigint) };
+        const raw = (await poolGetProviderPosition(asset, who)) as any;
+        return {
+          deposit: Number(raw?.deposit) || 0,
+          earned: Number(raw?.earned) || 0,
+        };
       } catch (err: any) {
         setError(err?.message || "Failed to read position");
         return null;
@@ -67,25 +68,22 @@ export function usePool(asset: string) {
     [asset],
   );
 
+  const readBalance = useCallback(async (who: string): Promise<number> => {
+    try {
+      const raw = await poolBalanceOf(who);
+      return Number(raw) || 0;
+    } catch (err: any) {
+      setError(err?.message || "Failed to read balance");
+      return 0;
+    }
+  }, []);
+
   const deposit = useCallback(
-    async (amount: string) => {
+    async (amount: number, caller: string) => {
       setBusy(true);
       setError("");
       try {
-        const signer = await getSigner();
-        const me = await signer.getAddress();
-        const token = genUSDCContract(signer);
-        const pool = poolContract(asset, signer);
-        const poolAddr = await pool.getAddress();
-        const want = parse(amount);
-
-        const allowance = (await token.allowance(me, poolAddr)) as bigint;
-        if (allowance < want) {
-          const tx = await token.approve(poolAddr, want);
-          await tx.wait();
-        }
-        const tx2 = await pool.deposit(want);
-        await tx2.wait();
+        await poolDeposit(asset, amount, caller);
         return true;
       } catch (err: any) {
         setError(err?.message || "Deposit failed");
@@ -98,24 +96,11 @@ export function usePool(asset: string) {
   );
 
   const purchasePolicy = useCallback(
-    async (coverage: string, premium: string) => {
+    async (coverage: number, caller: string) => {
       setBusy(true);
       setError("");
       try {
-        const signer = await getSigner();
-        const me = await signer.getAddress();
-        const token = genUSDCContract(signer);
-        const pool = poolContract(asset, signer);
-        const poolAddr = await pool.getAddress();
-        const premiumWei = parse(premium);
-
-        const allowance = (await token.allowance(me, poolAddr)) as bigint;
-        if (allowance < premiumWei) {
-          const tx = await token.approve(poolAddr, premiumWei);
-          await tx.wait();
-        }
-        const tx2 = await pool.purchasePolicy(parse(coverage), premiumWei);
-        await tx2.wait();
+        await poolPurchasePolicy(asset, coverage, caller);
         return true;
       } catch (err: any) {
         setError(err?.message || "Policy purchase failed");
@@ -128,14 +113,11 @@ export function usePool(asset: string) {
   );
 
   const withdraw = useCallback(
-    async (amount: string) => {
+    async (amount: number, caller: string) => {
       setBusy(true);
       setError("");
       try {
-        const signer = await getSigner();
-        const pool = poolContract(asset, signer);
-        const tx = await pool.withdraw(parse(amount));
-        await tx.wait();
+        await poolWithdraw(asset, amount, caller);
         return true;
       } catch (err: any) {
         setError(err?.message || "Withdraw failed");
@@ -148,14 +130,11 @@ export function usePool(asset: string) {
   );
 
   const settleClaim = useCallback(
-    async (policyId: number, depegConfirmed: boolean, severityPct: number) => {
+    async (policyId: string, depegConfirmed: boolean, severityPct: number, caller: string) => {
       setBusy(true);
       setError("");
       try {
-        const signer = await getSigner();
-        const pool = poolContract(asset, signer);
-        const tx = await pool.settleClaim(policyId, depegConfirmed, severityPct);
-        await tx.wait();
+        await poolSettleClaim(policyId, depegConfirmed ? "true" : "false", severityPct, caller);
         return true;
       } catch (err: any) {
         setError(err?.message || "Settlement failed");
@@ -167,5 +146,5 @@ export function usePool(asset: string) {
     [asset],
   );
 
-  return { busy, error, readStats, readPosition, deposit, purchasePolicy, withdraw, settleClaim };
+  return { busy, error, readStats, readPosition, readBalance, deposit, purchasePolicy, withdraw, settleClaim };
 }

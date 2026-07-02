@@ -22,7 +22,7 @@ export default function PoolDetail() {
   const [price, setPrice] = useState(1.0);
   const [tab, setTab] = useState<Tab>("coverage");
   const [stats, setStats] = useState<Stats | null>(null);
-  const [depositAmt, setDepositAmt] = useState("50000");
+  const [depositAmt, setDepositAmt] = useState(50000);
   const [sharePct, setSharePct] = useState<number | null>(null);
   const [notice, setNotice] = useState("");
 
@@ -31,8 +31,8 @@ export default function PoolDetail() {
     setStats(s);
     if (s && isConnected && address) {
       const pos = await pool.readPosition(address);
-      const total = parseFloat(s.totalPoolDeposits || "0");
-      const mine = pos ? parseFloat(pos.depositAmount || "0") : 0;
+      const total = s.totalDeposits;
+      const mine = pos ? pos.deposit : 0;
       setSharePct(total > 0 ? (mine / total) * 100 : 0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -46,6 +46,7 @@ export default function PoolDetail() {
         const data = await res.json();
         if (alive && typeof data.price === "number") setPrice(data.price);
       } catch {
+        // hold last
       }
     }
     tickPrice();
@@ -62,9 +63,13 @@ export default function PoolDetail() {
     return <div style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>Unknown asset.</div>;
   }
 
-  const onPurchase = async (coverage: string, premium: string) => {
+  const onPurchase = async (coverage: number) => {
+    if (!address) {
+      setNotice("Connect a wallet first.");
+      return;
+    }
     setNotice("");
-    const ok = await pool.purchasePolicy(coverage, premium);
+    const ok = await pool.purchasePolicy(coverage, address);
     if (ok) {
       setNotice("Policy purchased. View it under My Positions.");
       refresh();
@@ -72,8 +77,12 @@ export default function PoolDetail() {
   };
 
   const onDeposit = async () => {
+    if (!address) {
+      setNotice("Connect a wallet first.");
+      return;
+    }
     setNotice("");
-    const ok = await pool.deposit(depositAmt);
+    const ok = await pool.deposit(depositAmt, address);
     if (ok) {
       setNotice("Liquidity deposited.");
       refresh();
@@ -141,9 +150,9 @@ export default function PoolDetail() {
                 Deposit Amount (genUSDC)
               </label>
               <input
-                value={depositAmt}
-                onChange={(e) => setDepositAmt(e.target.value.replace(/[^0-9.]/g, ""))}
-                inputMode="decimal"
+                value={String(depositAmt)}
+                onChange={(e) => setDepositAmt(Number(e.target.value.replace(/[^0-9]/g, "")) || 0)}
+                inputMode="numeric"
                 style={{ background: "var(--void)", border: "1px solid var(--gridline)", color: "var(--text-primary)", padding: "12px 14px", fontSize: 18 }}
               />
               <button

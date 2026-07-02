@@ -3,19 +3,22 @@ import { useState, useMemo } from "react";
 interface CoverageCalculatorProps {
   premiumRateBps: number;
   busy: boolean;
-  onPurchase: (coverage: string, premium: string) => void;
+  onPurchase: (coverage: number) => void;
 }
 
 export default function CoverageCalculator({ premiumRateBps, busy, onPurchase }: CoverageCalculatorProps) {
   const [coverage, setCoverage] = useState("10000");
 
-  const premium = useMemo(() => {
-    const c = parseFloat(coverage || "0");
-    if (!isFinite(c) || c <= 0) return 0;
-    return (c * premiumRateBps) / 10000;
-  }, [coverage, premiumRateBps]);
+  const coverageNum = useMemo(() => {
+    const c = parseInt(coverage || "0", 10);
+    return isFinite(c) && c > 0 ? c : 0;
+  }, [coverage]);
 
-  const valid = parseFloat(coverage || "0") > 0;
+  const premium = useMemo(() => {
+    return Math.floor((coverageNum * premiumRateBps) / 10000);
+  }, [coverageNum, premiumRateBps]);
+
+  const valid = coverageNum > 0;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -24,8 +27,8 @@ export default function CoverageCalculator({ premiumRateBps, busy, onPurchase }:
       </label>
       <input
         value={coverage}
-        onChange={(e) => setCoverage(e.target.value.replace(/[^0-9.]/g, ""))}
-        inputMode="decimal"
+        onChange={(e) => setCoverage(e.target.value.replace(/[^0-9]/g, ""))}
+        inputMode="numeric"
         style={{
           background: "var(--void)",
           border: "1px solid var(--gridline)",
@@ -45,14 +48,14 @@ export default function CoverageCalculator({ premiumRateBps, busy, onPurchase }:
           border: "1px solid var(--gridline)",
         }}
       >
-        {"Coverage: " + (parseFloat(coverage || "0") || 0).toLocaleString() + " genUSDC"}
+        {"Coverage: " + coverageNum.toLocaleString() + " genUSDC"}
         <br />
         {"Premium (" + (premiumRateBps / 100).toFixed(1) + "%): " + premium.toLocaleString() + " genUSDC"}
       </div>
 
       <button
         disabled={!valid || busy}
-        onClick={() => onPurchase(coverage, String(premium))}
+        onClick={() => onPurchase(coverageNum)}
         style={{
           background: valid && !busy ? "var(--accent)" : "var(--gridline)",
           color: valid && !busy ? "var(--void)" : "var(--text-muted)",

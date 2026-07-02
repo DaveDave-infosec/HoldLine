@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { judgeDepeg, getVerdict, getAllVerdicts, getVerdictCount } from "../lib/genlayer";
+import { judgeDepeg, getVerdict, getVerdictCount } from "../lib/genlayer";
 
 export interface Verdict {
   verdict_id: string;
@@ -63,15 +63,6 @@ export function useJudgeVerdict() {
     }
   }, []);
 
-  const fetchAll = useCallback(async (): Promise<Verdict[]> => {
-    try {
-      return (await getAllVerdicts()) as unknown as Verdict[];
-    } catch (err: any) {
-      setError(err?.message || "Failed to fetch verdicts");
-      return [];
-    }
-  }, []);
-
   const fetchCount = useCallback(async (): Promise<number> => {
     try {
       const c = await getVerdictCount();
@@ -82,5 +73,5 @@ export function useJudgeVerdict() {
     }
   }, []);
 
-  return { filing, error, fileClaim, fetchVerdict, fetchAll, fetchCount };
+  return { filing, error, fileClaim, fetchVerdict, fetchCount };
 }
