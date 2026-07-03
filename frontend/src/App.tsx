@@ -13,7 +13,7 @@ function short(addr: string): string {
 }
 
 function Nav() {
-  const { address, isConnected, isOwner, connecting, connect } = useWallet();
+  const { address, isConnected, isOwner, connecting, connect, disconnect } = useWallet();
   const loc = useLocation();
   const link = (to: string, label: string) => {
     const on = loc.pathname === to;
@@ -62,7 +62,8 @@ function Nav() {
       </div>
 
       <button
-        onClick={connect}
+        onClick={isConnected ? disconnect : connect}
+        title={isConnected ? "Click to disconnect" : "Connect wallet"}
         style={{
           background: isConnected ? "var(--elevated)" : "var(--accent)",
           color: isConnected ? "var(--text-primary)" : "var(--void)",
@@ -71,9 +72,10 @@ function Nav() {
           fontFamily: "var(--font-mono)",
           fontSize: 13,
           fontWeight: 500,
+          cursor: "pointer",
         }}
       >
-        {connecting ? "CONNECTING..." : isConnected ? short(address) : "CONNECT WALLET"}
+        {connecting ? "CONNECTING..." : isConnected ? short(address) + "  \u00D7" : "CONNECT WALLET"}
       </button>
     </header>
   );
