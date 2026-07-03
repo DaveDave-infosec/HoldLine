@@ -6,32 +6,24 @@ import { usePool } from "../hooks/usePool";
 import type { PolicyView } from "../hooks/usePolicy";
 import { ASSET_LIST } from "../lib/constants";
 
-interface PolicyRow extends PolicyView {
-  asset: string;
-}
-
 export default function MyPositions() {
   const { address, isConnected } = useWallet();
   const navigate = useNavigate();
-  const [policies, setPolicies] = useState<PolicyRow[]>([]);
-  const [deposits, setDeposits] = useState<{ asset: string; deposit: string; earned: string }[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const usdcPolicies = usePolicy();
-  const usdtPolicies = usePolicy();
+  const policies = usePolicy();
   const usdcPool = usePool("USDC");
   const usdtPool = usePool("USDT");
+
+  const [rows, setRows] = useState<PolicyView[]>([]);
+  const [deposits, setDeposits] = useState<{ asset: string; deposit: string; earned: string }[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!isConnected || !address) return;
     let alive = true;
     (async () => {
       setLoading(true);
-      const polRows: PolicyRow[] = [];
-      const usdcMine = await usdcPolicies.listMine(address);
-      usdcMine.forEach((p) => polRows.push({ ...p, asset: "USDC" }));
-      const usdtMine = await usdtPolicies.listMine(address);
-      usdtMine.forEach((p) => polRows.push({ ...p, asset: "USDT" }));
+
+      const mine = await policies.listMine(address);
 
       const depRows: { asset: string; deposit: string; earned: string }[] = [];
       for (const a of ASSET_LIST) {
@@ -47,7 +39,7 @@ export default function MyPositions() {
       }
 
       if (alive) {
-        setPolicies(polRows);
+        setRows(mine);
         setDeposits(depRows);
         setLoading(false);
       }
@@ -69,13 +61,13 @@ export default function MyPositions() {
       <div style={{ fontFamily: "var(--font-display)", fontSize: 13, letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 12 }}>
         POLICIES HELD
       </div>
-      {policies.length === 0 ? (
+      {rows.length === 0 ? (
         <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-muted)", marginBottom: 40 }}>
           {loading ? "Loading..." : "No policies yet."}
         </div>
       ) : (
         <div style={{ marginBottom: 40, border: "1px solid var(--gridline)" }}>
-          {policies.map((p) => {
+          {rows.map((p) => {
             const state = p.claimed ? "CLAIMED" : p.active ? "ACTIVE" : "INACTIVE";
             const stateColor = p.claimed ? "var(--accent)" : p.active ? "var(--peg-holding)" : "var(--text-muted)";
             return (
