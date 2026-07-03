@@ -3,7 +3,7 @@
 
 // GenLayer Studio Network
 export const STUDIO_CHAIN_ID = 61999;
-export const STUDIO_CHAIN_HEX = "0xF21F";
+export const STUDIO_CHAIN_HEX = "0xF22F";
 
 // Deployed Intelligent Contracts (both Python, both on Studio).
 export const JUDGE_CONTRACT_ADDRESS = import.meta.env.VITE_JUDGE_CONTRACT_ADDRESS || "";
