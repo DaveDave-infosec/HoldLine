@@ -16,32 +16,38 @@ export async function connectWallet(): Promise<string> {
   return accounts[0];
 }
 
-// Ensure MetaMask is on GenLayer Studio Network, prompting a switch/add.
+// Best-effort switch to GenLayer Studio. Never throws: if the wallet is
+// already on Studio, or rejects programmatic switching (some wallets return
+// non-standard error codes), we simply proceed. The connect flow must not
+// abort just because a switch/add call was unnecessary or unsupported.
 export async function ensureStudioNetwork(): Promise<void> {
   const eth = (window as any).ethereum;
-  if (!eth) throw new Error("MetaMask not found.");
+  if (!eth) throw new Error("No wallet found. Install a browser wallet to continue.");
   try {
     await eth.request({
       method: "wallet_switchEthereumChain",
       params: [{ chainId: STUDIO_CHAIN_HEX }],
     });
-  } catch (err: any) {
-    // 4902 = chain not added yet.
-    if (err && err.code === 4902) {
-      await eth.request({
-        method: "wallet_addEthereumChain",
-        params: [
-          {
-            chainId: STUDIO_CHAIN_HEX,
-            chainName: "GenLayer Studio",
-            nativeCurrency: { name: "GEN", symbol: "GEN", decimals: 18 },
-            rpcUrls: ["https://studio.genlayer.com/api"],
-            blockExplorerUrls: [],
-          },
-        ],
-      });
-    } else {
-      throw err;
+  } catch (switchErr: any) {
+    // 4902 = chain not added. Try to add it, but do not abort on failure.
+    if (switchErr && switchErr.code === 4902) {
+      try {
+        await eth.request({
+          method: "wallet_addEthereumChain",
+          params: [
+            {
+              chainId: STUDIO_CHAIN_HEX,
+              chainName: "GenLayer Studio",
+              nativeCurrency: { name: "GEN", symbol: "GEN", decimals: 18 },
+              rpcUrls: ["https://studio.genlayer.com/api"],
+              blockExplorerUrls: [],
+            },
+          ],
+        });
+      } catch {
+        // swallow: user can switch manually; connect still proceeds
+      }
     }
+    // Any other error (e.g. -32000 unsupported, or already on chain): ignore.
   }
 }
