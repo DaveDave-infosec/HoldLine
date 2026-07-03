@@ -1,9 +1,22 @@
-import { useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import type { ReactNode } from "react";
 import { ensureStudioNetwork, connectWallet } from "../lib/contracts";
 import { initClient } from "../lib/genlayer";
 import { OWNER_ADDRESS } from "../lib/constants";
 
-export function useWallet() {
+interface WalletState {
+  address: string;
+  isConnected: boolean;
+  isOwner: boolean;
+  connecting: boolean;
+  error: string;
+  connect: () => Promise<void>;
+  disconnect: () => void;
+}
+
+const WalletContext = createContext<WalletState | null>(null);
+
+export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string>("");
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string>("");
@@ -46,13 +59,26 @@ export function useWallet() {
       window.location.reload();
     };
 
-    eth.on("accountsChanged", onAccountsChanged);
-    eth.on("chainChanged", onChainChanged);
+    if (eth.on) {
+      eth.on("accountsChanged", onAccountsChanged);
+      eth.on("chainChanged", onChainChanged);
+    }
     return () => {
-      eth.removeListener("accountsChanged", onAccountsChanged);
-      eth.removeListener("chainChanged", onChainChanged);
+      if (eth.removeListener) {
+        eth.removeListener("accountsChanged", onAccountsChanged);
+        eth.removeListener("chainChanged", onChainChanged);
+      }
     };
   }, []);
 
-  return { address, isConnected, isOwner, connecting, error, connect, disconnect };
+  const value: WalletState = { address, isConnected, isOwner, connecting, error, connect, disconnect };
+  return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
+}
+
+export function useWallet(): WalletState {
+  const ctx = useContext(WalletContext);
+  if (!ctx) {
+    throw new Error("useWallet must be used within a WalletProvider");
+  }
+  return ctx;
 }
