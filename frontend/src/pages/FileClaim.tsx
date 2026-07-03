@@ -67,7 +67,7 @@ export default function FileClaim() {
     const requestedAt = new Date().toISOString();
     const url = priceUrl(asset, scenario);
 
-    const returned = await fileClaim(asset, url, newsUrl(asset, scenario), cfg.threshold, address, requestedAt);
+    const returned = await fileClaim(asset, url, newsUrl(asset, scenario), cfg.threshold, address, requestedAt, address);
 
     let verdictId = returned && returned.startsWith("holdline_") ? returned : "";
     if (!verdictId) {

@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { ReactNode } from "react";
-import { ensureStudioNetwork, connectWallet } from "../lib/contracts";
-import { initClient } from "../lib/genlayer";
+import { connectWalletAndSwitch } from "../lib/genlayer";
 import { OWNER_ADDRESS } from "../lib/constants";
 
 interface WalletState {
@@ -28,9 +27,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setConnecting(true);
     setError("");
     try {
-      await ensureStudioNetwork();
-      const addr = await connectWallet();
-      initClient(addr);
+      const addr = await connectWalletAndSwitch();
       setAddress(addr);
     } catch (err: any) {
       setError(err?.message || "Failed to connect wallet");
@@ -51,7 +48,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (!accounts || accounts.length === 0) {
         setAddress("");
       } else {
-        initClient(accounts[0]);
         setAddress(accounts[0]);
       }
     };

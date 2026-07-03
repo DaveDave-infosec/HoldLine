@@ -29,6 +29,7 @@ export function useJudgeVerdict() {
       thresholdPrice: string,
       requesterAddress: string,
       requestedAt: string,
+      accountAddress: string,
     ): Promise<string | null> => {
       setFiling(true);
       setError("");
@@ -40,6 +41,7 @@ export function useJudgeVerdict() {
           thresholdPrice,
           requesterAddress,
           requestedAt,
+          accountAddress,
         );
         return typeof result === "string" ? result : String(result);
       } catch (err: any) {
