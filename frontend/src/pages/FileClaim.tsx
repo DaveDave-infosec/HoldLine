@@ -19,6 +19,8 @@ const SCENARIOS: { key: Scenario; label: string }[] = [
   { key: "wick", label: "Flash Wick (0.92)" },
 ];
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export default function FileClaim() {
   const { address, isConnected } = useWallet();
   const navigate = useNavigate();
@@ -30,6 +32,7 @@ export default function FileClaim() {
   const [selected, setSelected] = useState<string>("");
   const [scenario, setScenario] = useState<Scenario>("severe");
   const [caseLabel, setCaseLabel] = useState("");
+  const [localError, setLocalError] = useState("");
 
   useEffect(() => {
     if (!isConnected || !address) return;
@@ -61,6 +64,8 @@ export default function FileClaim() {
     const cfg = ASSETS[asset];
     if (!cfg) return;
 
+    setLocalError("");
+
     const countBefore = await fetchCount();
     setCaseLabel("holdline_" + countBefore);
 
@@ -69,16 +74,29 @@ export default function FileClaim() {
 
     const returned = await fileClaim(asset, url, newsUrl(asset, scenario), cfg.threshold, address, requestedAt, address);
 
-    let verdictId = returned && returned.startsWith("holdline_") ? returned : "";
-    if (!verdictId) {
-      const countAfter = await fetchCount();
-      if (countAfter > countBefore) verdictId = "holdline_" + (countAfter - 1);
+    if (returned === null) {
+      setLocalError("Claim was not submitted. If you rejected the wallet prompt, try again.");
+      return;
     }
 
-    if (verdictId) {
-      navigate("/verdict/" + verdictId);
+    if (typeof returned === "string" && returned.startsWith("holdline_")) {
+      navigate("/verdict/" + returned);
+      return;
     }
+
+    for (let i = 0; i < 40; i++) {
+      await sleep(3000);
+      const countAfter = await fetchCount();
+      if (countAfter > countBefore) {
+        navigate("/verdict/holdline_" + (countAfter - 1));
+        return;
+      }
+    }
+
+    setLocalError("The judge is taking longer than expected. Your verdict may still be processing. Check back shortly.");
   };
+
+  const shownError = error || localError;
 
   return (
     <div>
@@ -143,7 +161,7 @@ export default function FileClaim() {
             {filing ? "JUDGE REASONING..." : "FILE CLAIM & REQUEST JUDGMENT"}
           </button>
 
-          {error && <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--peg-broken)" }}>{error}</div>}
+          {shownError && <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--peg-broken)" }}>{shownError}</div>}
         </div>
       )}
     </div>
