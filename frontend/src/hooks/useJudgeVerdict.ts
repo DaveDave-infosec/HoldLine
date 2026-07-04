@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 import { judgeDepeg, getVerdict, getVerdictCount } from "../lib/genlayer";
-
 export interface Verdict {
   verdict_id: string;
   asset_symbol: string;
@@ -15,12 +14,11 @@ export interface Verdict {
   reasoning_summary: string;
   requester: string;
   requested_at: string;
+  policy_id: string;
 }
-
 export function useJudgeVerdict() {
   const [filing, setFiling] = useState(false);
   const [error, setError] = useState<string>("");
-
   const fileClaim = useCallback(
     async (
       assetSymbol: string,
@@ -29,6 +27,7 @@ export function useJudgeVerdict() {
       thresholdPrice: string,
       requesterAddress: string,
       requestedAt: string,
+      policyId: string,
       accountAddress: string,
     ): Promise<string | null> => {
       setFiling(true);
@@ -41,6 +40,7 @@ export function useJudgeVerdict() {
           thresholdPrice,
           requesterAddress,
           requestedAt,
+          policyId,
           accountAddress,
         );
         return typeof result === "string" ? result : String(result);
@@ -53,7 +53,6 @@ export function useJudgeVerdict() {
     },
     [],
   );
-
   const fetchVerdict = useCallback(async (verdictId: string): Promise<Verdict | null> => {
     try {
       const v = (await getVerdict(verdictId)) as unknown as Verdict;
@@ -64,7 +63,6 @@ export function useJudgeVerdict() {
       return null;
     }
   }, []);
-
   const fetchCount = useCallback(async (): Promise<number> => {
     try {
       const c = await getVerdictCount();
@@ -74,6 +72,5 @@ export function useJudgeVerdict() {
       return 0;
     }
   }, []);
-
   return { filing, error, fileClaim, fetchVerdict, fetchCount };
 }

@@ -6,6 +6,7 @@ import {
   poolWithdraw,
   poolPurchasePolicy,
   poolSettleClaim,
+  poolSettleFromVerdict,
   poolBalanceOf,
 } from "../lib/genlayer";
 
@@ -146,5 +147,18 @@ export function usePool(asset: string) {
     [asset],
   );
 
-  return { busy, error, readStats, readPosition, readBalance, deposit, purchasePolicy, withdraw, settleClaim };
+  const settleFromVerdict = useCallback(async (verdictId: string, caller: string) => {
+    setBusy(true);
+    setError("");
+    try {
+      await poolSettleFromVerdict(verdictId, caller);
+      return true;
+    } catch (err: any) {
+      setError(err?.message || "Settlement failed");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+  return { busy, error, readStats, readPosition, readBalance, deposit, purchasePolicy, withdraw, settleClaim, settleFromVerdict };
 }

@@ -62,7 +62,7 @@ export default function FileClaim() {
 
   const onFile = async () => {
     if (!selected) return;
-    const [asset] = selected.split(":");
+    const [asset, policyId] = selected.split(":");
     const cfg = ASSETS[asset];
     if (!cfg) return;
     setLocalError("");
@@ -71,7 +71,7 @@ export default function FileClaim() {
     const requestedAt = new Date().toISOString();
     const url = priceUrl(asset, scenario);
     setPhase("submitting");
-    const returned = await fileClaim(asset, url, newsUrl(asset, scenario), cfg.threshold, address, requestedAt, address);
+    const returned = await fileClaim(asset, url, newsUrl(asset, scenario), cfg.threshold, address, requestedAt, policyId, address);
     if (returned === null) {
       setPhase("");
       setLocalError("Claim was not submitted. If you rejected the wallet prompt, try again.");

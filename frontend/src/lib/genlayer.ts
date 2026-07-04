@@ -1,18 +1,15 @@
+// frontend/src/lib/genlayer.ts
 import { createClient } from "genlayer-js";
 import { studionet } from "genlayer-js/chains";
 import { JUDGE_CONTRACT_ADDRESS, POOL_CONTRACT_ADDRESS, STUDIO_CHAIN_HEX } from "./constants";
-
 export const publicClient: any = createClient({ chain: studionet } as any);
-
 export function getWalletClient(account: string): any {
   return createClient({
     chain: studionet,
     account: account as `0x${string}`,
   } as any);
 }
-
 const ADDRESS_REGEX = /^0x[0-9a-fA-F]{40}$/;
-
 export async function connectWalletAndSwitch(): Promise<string> {
   const eth = (window as any).ethereum;
   if (!eth) throw new Error("Wallet not detected. Install a browser wallet to continue.");
@@ -21,7 +18,6 @@ export async function connectWalletAndSwitch(): Promise<string> {
   await ensureChain();
   return address;
 }
-
 async function ensureChain(): Promise<void> {
   const eth = (window as any).ethereum;
   if (!eth) throw new Error("Wallet not detected.");
@@ -53,15 +49,12 @@ async function ensureChain(): Promise<void> {
     }
   }
 }
-
 export function initClient(_accountAddress: string) {
   return publicClient;
 }
-
 // ---------------------------------------------------------------- //
 // Judge contract
 // ---------------------------------------------------------------- //
-
 export async function judgeDepeg(
   assetSymbol: string,
   priceEndpointUrl: string,
@@ -69,6 +62,7 @@ export async function judgeDepeg(
   thresholdPrice: string,
   requesterAddress: string,
   requestedAt: string,
+  policyId: string,
   accountAddress: string,
 ) {
   if (!ADDRESS_REGEX.test(accountAddress)) {
@@ -79,11 +73,10 @@ export async function judgeDepeg(
   return await client.writeContract({
     address: JUDGE_CONTRACT_ADDRESS,
     functionName: "judge_depeg",
-    args: [assetSymbol, priceEndpointUrl, newsQueryUrl, thresholdPrice, requesterAddress, requestedAt],
+    args: [assetSymbol, priceEndpointUrl, newsQueryUrl, thresholdPrice, requesterAddress, requestedAt, policyId],
     value: 0n,
   } as any);
 }
-
 export async function getVerdict(verdictId: string) {
   return await publicClient.readContract({
     address: JUDGE_CONTRACT_ADDRESS,
@@ -91,7 +84,6 @@ export async function getVerdict(verdictId: string) {
     args: [verdictId],
   } as any);
 }
-
 export async function getVerdictCount() {
   return await publicClient.readContract({
     address: JUDGE_CONTRACT_ADDRESS,
@@ -99,11 +91,9 @@ export async function getVerdictCount() {
     args: [],
   } as any);
 }
-
 // ---------------------------------------------------------------- //
 // Pool contract (money layer)
 // ---------------------------------------------------------------- //
-
 async function poolWrite(functionName: string, args: any[], accountAddress: string) {
   if (!ADDRESS_REGEX.test(accountAddress)) {
     throw new Error("Invalid account address. Reconnect your wallet and try again.");
@@ -117,23 +107,18 @@ async function poolWrite(functionName: string, args: any[], accountAddress: stri
     value: 0n,
   } as any);
 }
-
 export async function poolMint(toAddress: string, amount: number, caller: string) {
   return await poolWrite("mint", [toAddress, amount], caller);
 }
-
 export async function poolDeposit(asset: string, amount: number, caller: string) {
   return await poolWrite("deposit", [asset, amount, caller], caller);
 }
-
 export async function poolWithdraw(asset: string, amount: number, caller: string) {
   return await poolWrite("withdraw", [asset, amount, caller], caller);
 }
-
 export async function poolPurchasePolicy(asset: string, coverageAmount: number, caller: string) {
   return await poolWrite("purchase_policy", [asset, coverageAmount, caller], caller);
 }
-
 export async function poolSettleClaim(
   policyId: string,
   depegConfirmed: string,
@@ -142,7 +127,9 @@ export async function poolSettleClaim(
 ) {
   return await poolWrite("settle_claim", [policyId, depegConfirmed, severityPct, caller], caller);
 }
-
+export async function poolSettleFromVerdict(verdictId: string, caller: string) {
+  return await poolWrite("settle_from_verdict", [verdictId], caller);
+}
 export async function poolBalanceOf(address: string) {
   return await publicClient.readContract({
     address: POOL_CONTRACT_ADDRESS,
@@ -150,7 +137,6 @@ export async function poolBalanceOf(address: string) {
     args: [address],
   } as any);
 }
-
 export async function poolGetStats(asset: string) {
   return await publicClient.readContract({
     address: POOL_CONTRACT_ADDRESS,
@@ -158,7 +144,6 @@ export async function poolGetStats(asset: string) {
     args: [asset],
   } as any);
 }
-
 export async function poolGetProviderPosition(asset: string, address: string) {
   return await publicClient.readContract({
     address: POOL_CONTRACT_ADDRESS,
@@ -166,7 +151,6 @@ export async function poolGetProviderPosition(asset: string, address: string) {
     args: [asset, address],
   } as any);
 }
-
 export async function poolGetPolicy(policyId: string) {
   return await publicClient.readContract({
     address: POOL_CONTRACT_ADDRESS,
@@ -174,7 +158,6 @@ export async function poolGetPolicy(policyId: string) {
     args: [policyId],
   } as any);
 }
-
 export async function poolGetAllPolicies() {
   return await publicClient.readContract({
     address: POOL_CONTRACT_ADDRESS,
@@ -182,7 +165,6 @@ export async function poolGetAllPolicies() {
     args: [],
   } as any);
 }
-
 export async function poolGetPoliciesByHolder(address: string) {
   return await publicClient.readContract({
     address: POOL_CONTRACT_ADDRESS,
