@@ -23,7 +23,10 @@ export interface PoolStats {
 
 export interface ProviderPosition {
   deposit: number;
+  value: number;
+  pnl: number;
   earned: number;
+  shares: number;
 }
 
 export function usePool(asset: string) {
@@ -57,9 +60,14 @@ export function usePool(asset: string) {
     async (who: string): Promise<ProviderPosition | null> => {
       try {
         const raw = (await poolGetProviderPosition(asset, who)) as any;
+        const principal = Number(raw?.principal ?? raw?.deposit) || 0;
+        const value = Number(raw?.value) || 0;
         return {
-          deposit: Number(raw?.deposit) || 0,
+          deposit: principal,
+          value,
+          pnl: value - principal,
           earned: Number(raw?.earned) || 0,
+          shares: Number(raw?.shares) || 0,
         };
       } catch (err: any) {
         setError(err?.message || "Failed to read position");

@@ -14,7 +14,7 @@ export default function MyPositions() {
   const usdtPool = usePool("USDT");
 
   const [rows, setRows] = useState<PolicyView[]>([]);
-  const [deposits, setDeposits] = useState<{ asset: string; deposit: string; earned: string }[]>([]);
+  const [deposits, setDeposits] = useState<{ asset: string; deposit: string; value: string; pnl: number }[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -25,15 +25,16 @@ export default function MyPositions() {
 
       const mine = await policies.listMine(address);
 
-      const depRows: { asset: string; deposit: string; earned: string }[] = [];
+      const depRows: { asset: string; deposit: string; value: string; pnl: number }[] = [];
       for (const a of ASSET_LIST) {
         const pool = a.symbol === "USDC" ? usdcPool : usdtPool;
         const pos = await pool.readPosition(address);
-        if (pos && (pos.deposit > 0 || pos.earned > 0)) {
+        if (pos && (pos.deposit > 0 || pos.value > 0)) {
           depRows.push({
             asset: a.symbol,
             deposit: pos.deposit.toLocaleString(),
-            earned: pos.earned.toLocaleString(),
+            value: pos.value.toLocaleString(),
+            pnl: pos.pnl,
           });
         }
       }
@@ -114,7 +115,10 @@ export default function MyPositions() {
             >
               <div style={{ fontFamily: "var(--font-mono)", fontSize: 14 }}>{d.asset + " Pool"}</div>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-muted)" }}>
-                {"Deposited " + d.deposit + "  /  Earned " + d.earned}
+                {"Deposited " + d.deposit + "  /  Value " + d.value + "  "}
+                <span style={{ color: d.pnl >= 0 ? "var(--peg-holding)" : "var(--peg-broken)" }}>
+                  {(d.pnl >= 0 ? "+" : "") + d.pnl.toLocaleString()}
+                </span>
               </div>
             </div>
           ))}

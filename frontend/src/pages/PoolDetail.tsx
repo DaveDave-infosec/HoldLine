@@ -5,7 +5,7 @@ import PoolStats from "../components/PoolStats";
 import CoverageCalculator from "../components/CoverageCalculator";
 import { usePool } from "../hooks/usePool";
 import { useWallet } from "../hooks/useWallet";
-import type { PoolStats as Stats } from "../hooks/usePool";
+import type { PoolStats as Stats, ProviderPosition } from "../hooks/usePool";
 import { ASSETS, priceUrl } from "../lib/constants";
 
 type Tab = "coverage" | "liquidity";
@@ -24,6 +24,7 @@ export default function PoolDetail() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [depositAmt, setDepositAmt] = useState(50000);
   const [sharePct, setSharePct] = useState<number | null>(null);
+  const [myPos, setMyPos] = useState<ProviderPosition | null>(null);
   const [notice, setNotice] = useState("");
 
   const refresh = useCallback(async () => {
@@ -31,8 +32,9 @@ export default function PoolDetail() {
     setStats(s);
     if (s && isConnected && address) {
       const pos = await pool.readPosition(address);
+      setMyPos(pos);
       const total = s.totalDeposits;
-      const mine = pos ? pos.deposit : 0;
+      const mine = pos ? pos.value : 0;
       setSharePct(total > 0 ? (mine / total) * 100 : 0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -162,6 +164,19 @@ export default function PoolDetail() {
               >
                 {pool.busy ? "PROCESSING..." : "DEPOSIT"}
               </button>
+              {myPos && myPos.deposit > 0 && (
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)", lineHeight: 1.8, borderTop: "1px solid var(--gridline)", paddingTop: 12 }}>
+                  <div style={{ letterSpacing: "0.08em", marginBottom: 4 }}>YOUR POSITION</div>
+                  <div>{"Deposited  " + myPos.deposit.toLocaleString()}</div>
+                  <div>{"Value  " + myPos.value.toLocaleString()}</div>
+                  <div>
+                    {"P&L  "}
+                    <span style={{ color: myPos.pnl >= 0 ? "var(--peg-holding)" : "var(--peg-broken)" }}>
+                      {(myPos.pnl >= 0 ? "+" : "") + myPos.pnl.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
