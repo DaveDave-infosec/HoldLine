@@ -34,6 +34,7 @@ export default function FileClaim() {
   const [caseLabel, setCaseLabel] = useState("");
   const [localError, setLocalError] = useState("");
   const [phase, setPhase] = useState<Phase>("");
+  const [flash, setFlash] = useState(false);
 
   useEffect(() => {
     if (!isConnected || !address) return;
@@ -98,6 +99,17 @@ export default function FileClaim() {
 
   return (
     <div>
+      <style>{`
+        @keyframes hlFileFlash {
+          0% { filter: brightness(1); }
+          25% { filter: brightness(1.4); }
+          55% { filter: brightness(0.82); }
+          100% { filter: brightness(1); }
+        }
+        .hl-file-btn { transition: transform 90ms ease, filter 90ms ease; cursor: pointer; }
+        .hl-file-btn:active:not(:disabled) { transform: translateY(1px) scale(0.996); }
+        .hl-file-btn.hl-flash { animation: hlFileFlash 300ms ease; }
+      `}</style>
       {phase !== "" && <JudgeLoader caseId={caseLabel || "pending"} phase={phase} />}
       <h1 style={{ fontFamily: "var(--font-display)", fontSize: 36, fontWeight: 600, marginBottom: 8 }}>FILE A CLAIM</h1>
       <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: "var(--text-muted)", marginBottom: 40, maxWidth: 560 }}>
@@ -149,7 +161,12 @@ export default function FileClaim() {
           </div>
           <button
             disabled={busy}
-            onClick={onFile}
+            className={"hl-file-btn" + (flash ? " hl-flash" : "")}
+            onAnimationEnd={() => setFlash(false)}
+            onClick={() => {
+              setFlash(true);
+              onFile();
+            }}
             style={{ background: busy ? "var(--gridline)" : "var(--accent)", color: busy ? "var(--text-muted)" : "var(--void)", padding: "14px 0", fontSize: 14, fontWeight: 600, letterSpacing: "0.02em" }}
           >
             {busy ? "PROCESSING..." : "FILE CLAIM & REQUEST JUDGMENT"}
