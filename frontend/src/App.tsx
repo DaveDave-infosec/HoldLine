@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Routes, Route, Link, useLocation } from "react-router-dom";
 import { useWallet } from "./hooks/useWallet";
 import { usePool } from "./hooks/usePool";
+import { poolMint } from "./lib/genlayer";
 import Home from "./pages/Home";
 import PoolDetail from "./pages/PoolDetail";
 import FileClaim from "./pages/FileClaim";
@@ -18,28 +19,43 @@ function Nav() {
   const { address, isConnected, isOwner, connecting, connect, disconnect } = useWallet();
   const { readBalance } = usePool("USDC");
   const [balance, setBalance] = useState<number | null>(null);
+  const [fauceting, setFauceting] = useState(false);
   const loc = useLocation();
 
-  useEffect(() => {
+  const loadBalance = useCallback(async () => {
     if (!isConnected || !address) {
       setBalance(null);
       return;
     }
-    let alive = true;
-    const load = async () => {
-      try {
-        const b = await readBalance(address);
-        if (alive) setBalance(b);
-      } catch {
+    try {
+      const b = await readBalance(address);
+      setBalance(b);
+    } catch {
+      // ignore transient read errors
+    }
+  }, [address, isConnected, readBalance]);
+
+  useEffect(() => {
+    loadBalance();
+    const id = setInterval(loadBalance, 15000);
+    return () => clearInterval(id);
+  }, [loadBalance]);
+
+  const onFaucet = async () => {
+    if (!address) return;
+    setFauceting(true);
+    try {
+      await poolMint(address, 50000, address);
+      for (let i = 0; i < 5; i++) {
+        await new Promise((r) => setTimeout(r, 2500));
+        await loadBalance();
       }
-    };
-    load();
-    const id = setInterval(load, 15000);
-    return () => {
-      alive = false;
-      clearInterval(id);
-    };
-  }, [address, isConnected]);
+    } catch {
+      // ignore
+    } finally {
+      setFauceting(false);
+    }
+  };
 
   const link = (to: string, label: string) => {
     const on = loc.pathname === to;
@@ -87,6 +103,26 @@ function Nav() {
         </nav>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        {isConnected && (
+          <button
+            onClick={onFaucet}
+            disabled={fauceting}
+            title="Mint 50,000 test genUSDC to your wallet"
+            style={{
+              background: "transparent",
+              color: "var(--accent)",
+              border: "1px solid var(--accent)",
+              padding: "9px 14px",
+              fontFamily: "var(--font-mono)",
+              fontSize: 12,
+              fontWeight: 500,
+              cursor: fauceting ? "default" : "pointer",
+              opacity: fauceting ? 0.6 : 1,
+            }}
+          >
+            {fauceting ? "MINTING..." : "GET TEST genUSDC"}
+          </button>
+        )}
         {isConnected && balance !== null && (
           <div title="Your genUSDC wallet balance" style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-muted)" }}>
             <span style={{ color: "var(--peg-holding)" }}>{balance.toLocaleString()}</span> genUSDC
