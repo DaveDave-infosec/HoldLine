@@ -1,37 +1,47 @@
 import { useEffect, useState } from "react";
 
+type Phase = "submitting" | "consensus";
+
 interface JudgeLoaderProps {
   caseId: string;
+  phase: Phase;
 }
 
-const STEPS = [
-  { n: "01", label: "FETCHING LIVE PRICE DATA", detail: "Querying Coinbase, Binance, Kraken" },
-  { n: "02", label: "READING POOL LIQUIDITY", detail: "Checking on-chain pool ratios" },
-  { n: "03", label: "SCANNING NEWS CONTEXT", detail: "Searching for reported cause" },
-  { n: "04", label: "JUDGE REASONING", detail: "Validators weighing combined evidence" },
+const STEPS: { key: Phase; n: string; label: string }[] = [
+  { key: "submitting", n: "01", label: "SUBMIT CLAIM TRANSACTION" },
+  { key: "consensus", n: "02", label: "GENLAYER VALIDATOR CONSENSUS" },
 ];
 
-function bar(pct: number): string {
-  const filled = Math.round(pct * 16);
-  return "#".repeat(filled).replace(/#/g, "\u2588") + "\u2591".repeat(16 - filled);
+const SIGNALS = [
+  "Live price across venues",
+  "On-chain pool liquidity ratio",
+  "News context for a reported cause",
+];
+
+function sweep(tick: number): string {
+  const pos = tick % 16;
+  let out = "";
+  for (let i = 0; i < 16; i++) {
+    out += i === pos || i === (pos + 15) % 16 ? "\u2588" : "\u2591";
+  }
+  return out;
 }
 
-export default function JudgeLoader({ caseId }: JudgeLoaderProps) {
-  const [active, setActive] = useState(0);
-
+export default function JudgeLoader({ caseId, phase }: JudgeLoaderProps) {
+  const [tick, setTick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => {
-      setActive((a) => (a < STEPS.length ? a + 1 : a));
-    }, 4000);
+    const id = setInterval(() => setTick((t) => t + 1), 110);
     return () => clearInterval(id);
   }, []);
+
+  const activeIndex = phase === "submitting" ? 0 : 1;
 
   return (
     <div
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(6,8,10,0.96)",
+        background: "rgba(10,11,13,0.96)",
         zIndex: 50,
         display: "flex",
         alignItems: "center",
@@ -49,29 +59,44 @@ export default function JudgeLoader({ caseId }: JudgeLoaderProps) {
         </div>
 
         {STEPS.map((s, i) => {
-          const done = i < active;
-          const inProgress = i === active;
+          const done = i < activeIndex;
+          const inProgress = i === activeIndex;
           const state = done ? "COMPLETE" : inProgress ? "IN PROGRESS" : "QUEUED";
-          const pct = done ? 1 : inProgress ? 0.55 : 0;
           const color = done ? "var(--peg-holding)" : inProgress ? "var(--accent)" : "var(--text-muted)";
+          const track = done ? "\u2588".repeat(16) : inProgress ? sweep(tick) : "\u2591".repeat(16);
           return (
-            <div key={s.n} style={{ marginBottom: 20 }}>
+            <div key={s.n} style={{ marginBottom: 18 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--font-mono)", fontSize: 13 }}>
-                <span style={{ color: "var(--text-primary)" }}>{"[ " + s.n + " ]  " + s.label}</span>
+                <span style={{ color: done || inProgress ? "var(--text-primary)" : "var(--text-muted)" }}>{"[ " + s.n + " ]  " + s.label}</span>
                 <span style={{ color }}>{state}</span>
               </div>
-              <div style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-muted)", margin: "4px 0 6px" }}>
-                {s.detail}
-              </div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color, letterSpacing: "0.05em" }}>{bar(pct)}</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color, letterSpacing: "0.05em", marginTop: 6 }}>{track}</div>
             </div>
           );
         })}
 
         <div style={{ height: 1, background: "var(--gridline)", margin: "8px 0 16px" }} />
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)" }}>
-          ESTIMATED COMPLETION: 30-90 SECONDS
-        </div>
+
+        {phase === "submitting" ? (
+          <div style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>
+            Confirm the transaction in your wallet. Nothing is read or judged until this claim is on-chain.
+          </div>
+        ) : (
+          <div>
+            <div style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6, marginBottom: 14 }}>
+              Your claim is on-chain. GenLayer validators are executing the judge and reaching consensus. It reasons over three signals at once:
+            </div>
+            {SIGNALS.map((sig) => (
+              <div key={sig} style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--font-mono)", fontSize: 12, padding: "6px 0", borderBottom: "1px solid var(--gridline)" }}>
+                <span style={{ color: "var(--text-primary)" }}>{sig}</span>
+                <span style={{ color: "var(--text-muted)" }}>UNDER REVIEW</span>
+              </div>
+            ))}
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)", marginTop: 16 }}>
+              TYPICALLY 30-90 SECONDS
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

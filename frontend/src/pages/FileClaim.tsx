@@ -21,18 +21,19 @@ const SCENARIOS: { key: Scenario; label: string }[] = [
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+type Phase = "" | "submitting" | "consensus";
+
 export default function FileClaim() {
   const { address, isConnected } = useWallet();
   const navigate = useNavigate();
   const { filing, error, fileClaim, fetchCount } = useJudgeVerdict();
-
   const policies = usePolicy();
-
   const [claimable, setClaimable] = useState<ClaimablePolicy[]>([]);
   const [selected, setSelected] = useState<string>("");
   const [scenario, setScenario] = useState<Scenario>("severe");
   const [caseLabel, setCaseLabel] = useState("");
   const [localError, setLocalError] = useState("");
+  const [phase, setPhase] = useState<Phase>("");
 
   useEffect(() => {
     if (!isConnected || !address) return;
@@ -63,27 +64,23 @@ export default function FileClaim() {
     const [asset] = selected.split(":");
     const cfg = ASSETS[asset];
     if (!cfg) return;
-
     setLocalError("");
-
     const countBefore = await fetchCount();
     setCaseLabel("holdline_" + countBefore);
-
     const requestedAt = new Date().toISOString();
     const url = priceUrl(asset, scenario);
-
+    setPhase("submitting");
     const returned = await fileClaim(asset, url, newsUrl(asset, scenario), cfg.threshold, address, requestedAt, address);
-
     if (returned === null) {
+      setPhase("");
       setLocalError("Claim was not submitted. If you rejected the wallet prompt, try again.");
       return;
     }
-
     if (typeof returned === "string" && returned.startsWith("holdline_")) {
       navigate("/verdict/" + returned);
       return;
     }
-
+    setPhase("consensus");
     for (let i = 0; i < 40; i++) {
       await sleep(3000);
       const countAfter = await fetchCount();
@@ -92,22 +89,21 @@ export default function FileClaim() {
         return;
       }
     }
-
+    setPhase("");
     setLocalError("The judge is taking longer than expected. Your verdict may still be processing. Check back shortly.");
   };
 
   const shownError = error || localError;
+  const busy = filing || phase !== "";
 
   return (
     <div>
-      {filing && <JudgeLoader caseId={caseLabel || "pending"} />}
-
+      {phase !== "" && <JudgeLoader caseId={caseLabel || "pending"} phase={phase} />}
       <h1 style={{ fontFamily: "var(--font-display)", fontSize: 36, fontWeight: 600, marginBottom: 8 }}>FILE A CLAIM</h1>
       <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: "var(--text-muted)", marginBottom: 40, maxWidth: 560 }}>
         Filing a claim triggers the Holdline judge on GenLayer. It reads live price across exchanges, pool liquidity,
         and news context, then reasons over all of it to confirm or deny a genuine depeg.
       </p>
-
       {claimable.length === 0 ? (
         <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-muted)" }}>
           No active policies to claim against. Buy coverage first.
@@ -128,7 +124,6 @@ export default function FileClaim() {
               ))}
             </select>
           </div>
-
           <div>
             <label style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--text-muted)" }}>
               Price Scenario (demo)
@@ -152,15 +147,13 @@ export default function FileClaim() {
               ))}
             </div>
           </div>
-
           <button
-            disabled={filing}
+            disabled={busy}
             onClick={onFile}
-            style={{ background: filing ? "var(--gridline)" : "var(--accent)", color: filing ? "var(--text-muted)" : "var(--void)", padding: "14px 0", fontSize: 14, fontWeight: 600, letterSpacing: "0.02em" }}
+            style={{ background: busy ? "var(--gridline)" : "var(--accent)", color: busy ? "var(--text-muted)" : "var(--void)", padding: "14px 0", fontSize: 14, fontWeight: 600, letterSpacing: "0.02em" }}
           >
-            {filing ? "JUDGE REASONING..." : "FILE CLAIM & REQUEST JUDGMENT"}
+            {busy ? "PROCESSING..." : "FILE CLAIM & REQUEST JUDGMENT"}
           </button>
-
           {shownError && <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--peg-broken)" }}>{shownError}</div>}
         </div>
       )}
