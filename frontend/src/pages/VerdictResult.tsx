@@ -148,6 +148,9 @@ export default function VerdictResult() {
             </div>
           ) : canSettle ? (
             <div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--accent)", marginBottom: 12, letterSpacing: "0.03em" }}>
+                CLAIM CONFIRMED. ONE STEP LEFT: SETTLE TO RECEIVE YOUR PAYOUT.
+              </div>
               <button
                 onClick={onSettle}
                 disabled={settling || pool.busy}

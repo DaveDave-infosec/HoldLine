@@ -124,17 +124,23 @@ export default function FileClaim() {
         <div style={{ display: "flex", flexDirection: "column", gap: 28, maxWidth: 560 }}>
           <div>
             <label style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--text-muted)" }}>Policy</label>
-            <select
-              value={selected}
-              onChange={(e) => setSelected(e.target.value)}
-              style={{ width: "100%", marginTop: 8, background: "var(--void)", border: "1px solid var(--gridline)", color: "var(--text-primary)", padding: "12px 14px", fontSize: 14 }}
-            >
-              {claimable.map((p) => (
-                <option key={p.asset + ":" + p.policyId} value={p.asset + ":" + p.policyId}>
-                  {p.asset + "  #" + p.policyId}
-                </option>
-              ))}
-            </select>
+            {claimable.length === 1 ? (
+              <div style={{ marginTop: 8, background: "var(--void)", border: "1px solid var(--gridline)", color: "var(--text-primary)", padding: "12px 14px", fontFamily: "var(--font-mono)", fontSize: 14 }}>
+                {"Claiming  " + claimable[0].asset + "  #" + claimable[0].policyId + "   \u00B7   " + claimable[0].coverage.toLocaleString() + " coverage"}
+              </div>
+            ) : (
+              <select
+                value={selected}
+                onChange={(e) => setSelected(e.target.value)}
+                style={{ width: "100%", marginTop: 8, background: "var(--void)", border: "1px solid var(--gridline)", color: "var(--text-primary)", padding: "12px 14px", fontSize: 14 }}
+              >
+                {claimable.map((p) => (
+                  <option key={p.asset + ":" + p.policyId} value={p.asset + ":" + p.policyId}>
+                    {p.asset + "  #" + p.policyId + "   \u00B7   " + p.coverage.toLocaleString() + " coverage"}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           <div>
             <label style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--text-muted)" }}>
