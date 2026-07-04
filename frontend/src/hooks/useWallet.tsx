@@ -19,7 +19,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string>("");
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string>("");
-
   const isConnected = address !== "";
   const isOwner = isConnected && address.toLowerCase() === OWNER_ADDRESS;
 
@@ -42,8 +41,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const eth = (window as any).ethereum;
-    if (!eth) return;
+    if (!eth || !eth.request) return;
+    eth
+      .request({ method: "eth_accounts" })
+      .then((accounts: string[]) => {
+        if (accounts && accounts.length > 0) setAddress(accounts[0]);
+      })
+      .catch(() => {});
+  }, []);
 
+  useEffect(() => {
+    const eth = (window as any).ethereum;
+    if (!eth) return;
     const onAccountsChanged = (accounts: string[]) => {
       if (!accounts || accounts.length === 0) {
         setAddress("");
@@ -54,7 +63,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const onChainChanged = () => {
       window.location.reload();
     };
-
     if (eth.on) {
       eth.on("accountsChanged", onAccountsChanged);
       eth.on("chainChanged", onChainChanged);

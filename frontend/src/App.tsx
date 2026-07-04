@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { Routes, Route, Link, useLocation } from "react-router-dom";
 import { useWallet } from "./hooks/useWallet";
+import { usePool } from "./hooks/usePool";
 import Home from "./pages/Home";
 import PoolDetail from "./pages/PoolDetail";
 import FileClaim from "./pages/FileClaim";
@@ -14,7 +16,31 @@ function short(addr: string): string {
 
 function Nav() {
   const { address, isConnected, isOwner, connecting, connect, disconnect } = useWallet();
+  const { readBalance } = usePool("USDC");
+  const [balance, setBalance] = useState<number | null>(null);
   const loc = useLocation();
+
+  useEffect(() => {
+    if (!isConnected || !address) {
+      setBalance(null);
+      return;
+    }
+    let alive = true;
+    const load = async () => {
+      try {
+        const b = await readBalance(address);
+        if (alive) setBalance(b);
+      } catch {
+      }
+    };
+    load();
+    const id = setInterval(load, 15000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, [address, isConnected]);
+
   const link = (to: string, label: string) => {
     const on = loc.pathname === to;
     return (
@@ -60,23 +86,29 @@ function Nav() {
           {isOwner && link("/admin", "Admin")}
         </nav>
       </div>
-
-      <button
-        onClick={isConnected ? disconnect : connect}
-        title={isConnected ? "Click to disconnect" : "Connect wallet"}
-        style={{
-          background: isConnected ? "var(--elevated)" : "var(--accent)",
-          color: isConnected ? "var(--text-primary)" : "var(--void)",
-          border: isConnected ? "1px solid var(--gridline)" : "none",
-          padding: "9px 18px",
-          fontFamily: "var(--font-mono)",
-          fontSize: 13,
-          fontWeight: 500,
-          cursor: "pointer",
-        }}
-      >
-        {connecting ? "CONNECTING..." : isConnected ? short(address) + "  \u00D7" : "CONNECT WALLET"}
-      </button>
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        {isConnected && balance !== null && (
+          <div title="Your genUSDC wallet balance" style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-muted)" }}>
+            <span style={{ color: "var(--peg-holding)" }}>{balance.toLocaleString()}</span> genUSDC
+          </div>
+        )}
+        <button
+          onClick={isConnected ? disconnect : connect}
+          title={isConnected ? "Click to disconnect" : "Connect wallet"}
+          style={{
+            background: isConnected ? "var(--elevated)" : "var(--accent)",
+            color: isConnected ? "var(--text-primary)" : "var(--void)",
+            border: isConnected ? "1px solid var(--gridline)" : "none",
+            padding: "9px 18px",
+            fontFamily: "var(--font-mono)",
+            fontSize: 13,
+            fontWeight: 500,
+            cursor: "pointer",
+          }}
+        >
+          {connecting ? "CONNECTING..." : isConnected ? short(address) + "  \u00D7" : "CONNECT WALLET"}
+        </button>
+      </div>
     </header>
   );
 }
