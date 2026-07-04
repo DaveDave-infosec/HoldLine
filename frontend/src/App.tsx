@@ -45,11 +45,14 @@ function Nav() {
   const onFaucet = async () => {
     if (!address) return;
     setFauceting(true);
+    const before = balance;
     try {
       await poolMint(address, 50000, address);
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 18; i++) {
         await new Promise((r) => setTimeout(r, 2500));
-        await loadBalance();
+        const b = await readBalance(address);
+        setBalance(b);
+        if (before === null || b !== before) break;
       }
     } catch {
       // ignore

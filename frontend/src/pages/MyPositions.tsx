@@ -20,11 +20,9 @@ export default function MyPositions() {
   useEffect(() => {
     if (!isConnected || !address) return;
     let alive = true;
-    (async () => {
-      setLoading(true);
-
+    const load = async (initial: boolean) => {
+      if (initial) setLoading(true);
       const mine = await policies.listMine(address);
-
       const depRows: { asset: string; deposit: string; value: string; pnl: number }[] = [];
       for (const a of ASSET_LIST) {
         const pool = a.symbol === "USDC" ? usdcPool : usdtPool;
@@ -38,15 +36,17 @@ export default function MyPositions() {
           });
         }
       }
-
       if (alive) {
         setRows(mine);
         setDeposits(depRows);
-        setLoading(false);
+        if (initial) setLoading(false);
       }
-    })();
+    };
+    load(true);
+    const id = setInterval(() => load(false), 10000);
     return () => {
       alive = false;
+      clearInterval(id);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address, isConnected]);
