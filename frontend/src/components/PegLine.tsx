@@ -127,7 +127,7 @@ export default function PegLine({ price, mode = "live", annotation, forceStatus 
         </text>
       )}
       {showLabels && (
-        <text x={dotX - 12} y={dotY + 4} textAnchor="end" fill={color} fontFamily="var(--font-mono)" fontSize="15" fontWeight="500">
+        <text x={dotX - 12} y={dotY - 12} textAnchor="end" fill={color} fontFamily="var(--font-mono)" fontSize="15" fontWeight="500">
           {"$" + priceText}
         </text>
       )}
