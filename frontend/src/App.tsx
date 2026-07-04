@@ -10,6 +10,7 @@ import VerdictResult from "./pages/VerdictResult";
 import MyPositions from "./pages/MyPositions";
 import Admin from "./pages/Admin";
 import HowItWorks from "./pages/HowItWorks";
+import Guide from "./pages/Guide";
 
 function short(addr: string): string {
   return addr ? addr.slice(0, 6) + "..." + addr.slice(-4) : "";
@@ -99,6 +100,7 @@ function Nav() {
           {link("/", "Markets")}
           {link("/positions", "My Positions")}
           {link("/how-it-works", "How It Works")}
+          {link("/guide", "Guide")}
           {isOwner && link("/admin", "Admin")}
         </nav>
       </div>
@@ -162,6 +164,7 @@ export default function App() {
           <Route path="/positions" element={<MyPositions />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/guide" element={<Guide />} />
         </Routes>
       </main>
     </div>
