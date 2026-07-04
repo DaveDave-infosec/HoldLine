@@ -69,7 +69,7 @@ export default function MyPositions() {
         <div style={{ marginBottom: 40, border: "1px solid var(--gridline)" }}>
           {rows.map((p) => {
             const state = p.claimed ? "CLAIMED" : p.active ? "ACTIVE" : "INACTIVE";
-            const stateColor = p.claimed ? "var(--accent)" : p.active ? "var(--peg-holding)" : "var(--text-muted)";
+            const stateColor = p.claimed ? "var(--text-muted)" : p.active ? "var(--peg-holding)" : "var(--text-muted)";
             return (
               <div
                 key={p.asset + "-" + p.policyId}

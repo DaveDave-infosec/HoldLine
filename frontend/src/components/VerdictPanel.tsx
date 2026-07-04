@@ -21,7 +21,7 @@ export default function VerdictPanel({ verdict }: VerdictPanelProps) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 24, marginBottom: 8 }}>
-        <div style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: headColor }}>
+        <div style={{ fontFamily: "var(--font-serif)", fontSize: 44, fontWeight: 400, lineHeight: 1, color: headColor }}>
           {confirmed ? "DEPEG CONFIRMED" : "DEPEG DENIED"}
         </div>
         {confirmed && (
